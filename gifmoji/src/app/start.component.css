@@ -1,0 +1,49 @@
+
+h1 {
+  font-size: 12rem;
+  font-weight: 500;
+  line-height: 100%;
+  letter-spacing: -0.125rem;
+  margin: 0;
+}
+
+main {
+  width: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.title {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.click-or-drop {
+  margin-top: 8rem;
+  font-size: 1.5rem;
+  border: solid 2px var(--gray-400);
+  padding: 1.5rem 3rem;
+}
+
+@media screen and (max-width: 650px) {
+  .content {
+    flex-direction: column;
+    width: max-content;
+  }
+
+  .divider {
+    height: 1px;
+    width: 100%;
+    background: var(--red-to-pink-to-purple-horizontal-gradient);
+    margin-block: 1.5rem;
+  }
+}

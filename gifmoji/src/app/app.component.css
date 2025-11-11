@@ -1,0 +1,12 @@
+
+.dark-mode-toggle {
+	display: flex;
+	justify-content: flex-end;
+	margin-bottom: 1em;
+}
+
+.dark-mode-toggle label {
+	display: flex;
+	align-items: center;
+	gap: 0.5em;
+}

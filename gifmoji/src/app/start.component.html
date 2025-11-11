@@ -1,0 +1,9 @@
+<main class="main">
+  <div class="title">
+    <img src="pinwheel.png" width="512" height="512" alt="Gifmoji Logo" class="logo" />
+    <h1>Gifmoji</h1>
+  </div>
+  <div class="click-or-drop" (click)="onFileSelect()" (dragover)="onDragOver($event)" (drop)="onDrop($event)">
+    <p>Drop an image or click to select a file</p>
+  </div>
+</main>
