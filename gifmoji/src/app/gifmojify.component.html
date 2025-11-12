@@ -24,6 +24,12 @@
       <p>Num Frames</p>
       <input type="number" [(ngModel)]="numFrames" />
 
+      <p>Blur Frames</p>
+      <input type="number" [(ngModel)]="blurFrames" />
+
+      <p>Blur Amount</p>
+      <input type="number" [(ngModel)]="blurAmount" step="0.1" />
+
       <div style="margin-top:16px;">
         <button (click)="refresh()">Regenerate</button>
       </div>
