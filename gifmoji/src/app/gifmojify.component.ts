@@ -17,6 +17,9 @@ export class GifmojifyComponent {
   styles = ["spinify"]
   selectedStyle = this.styles[0];
   frameDelay = 40;
+  zoom = 1.0;
+  reverse = false;
+  numFrames = 24;
 
   // Cache the object URL so it doesn't change on every CD cycle.
   imageUrl: string = '';
@@ -80,9 +83,10 @@ export class GifmojifyComponent {
     img.src = this.imageUrl;
     await new Promise((resolve) => { img.onload = resolve; });
 
-    const width = img.naturalWidth;
-    const height = img.naturalHeight;
-    const frames = 24;
+    const origWidth = img.naturalWidth;
+    const origHeight = img.naturalHeight;
+    const width = origWidth * this.zoom;
+    const height = origHeight * this.zoom;
     const gif = new GIF({
       workers: 2,
       quality: 10,
@@ -97,13 +101,15 @@ export class GifmojifyComponent {
     canvas.height = height;
     const ctx = canvas.getContext('2d', { willReadFrequently: true, alpha: true })!;
 
-    for (let i = 0; i < frames; i++) {
+    const direction = this.reverse ? -1 : 1;
+
+    for (let i = 0; i < this.numFrames; i++) {
       ctx.clearRect(0, 0, width, height);
 
       ctx.save();
-      ctx.translate(width / 2, height / 2);
-      ctx.rotate((2 * Math.PI * i) / frames);
-      ctx.drawImage(img, -width / 2, -height / 2, width, height);
+      ctx.translate(width / 2.0, height / 2.0);
+      ctx.rotate(direction * (2 * Math.PI * i) / this.numFrames);
+      ctx.drawImage(img, -origWidth / 2.0, -origHeight / 2.0, origWidth, origHeight);
       ctx.restore();
 
       this.fixTransparency(ctx, width, height);
