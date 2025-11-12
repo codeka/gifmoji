@@ -1,27 +1,126 @@
-import { Component, Input, OnDestroy } from '@angular/core';
+import { Component, Input, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import GIF from 'gif.js';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-gifmojify',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './gifmojify.component.html',
   styleUrls: ['./gifmojify.component.css'],
 })
 export class GifmojifyComponent {
   @Input() image: File | null = null;
 
+  styles = ["spinify"]
+  selectedStyle = this.styles[0];
+  frameDelay = 40;
+
   // Cache the object URL so it doesn't change on every CD cycle.
   imageUrl: string = '';
 
-  constructor(private router: Router) {
+  gifUrl: string = '';
+  private gifObjectUrl: string = '';
+
+  constructor(private router: Router, private cdr: ChangeDetectorRef) {
     // Retrieve the image from the router state
     const navigation = this.router.getCurrentNavigation();
     this.image = navigation?.extras.state?.['image'] || null;
     if (this.image) {
       this.imageUrl = URL.createObjectURL(this.image);
+      this.generateSpinningGif();
     }
+  }
+
+  refresh() {
+    if (this.selectedStyle === 'spinify') {
+      this.generateSpinningGif();
+    }
+  }
+
+  // Given an existing image with potentially partially-transparent pixels, convert it to
+  // a format that GIF will interpret correctly by replacing transparent pixels with magenta.
+  // Any other pixels are made fully opaque. Any pixels that are already magenta are made slightly
+  // off-magenta to avoid confusion with transparency.
+  private fixTransparency(ctx: CanvasRenderingContext2D, width: number, height: number) {
+    var numTransparentPixels = 0;
+    var numMagentaPixels = 0;
+    var numSemiTransparentPixels = 0;
+
+    const imgData = ctx.getImageData(0, 0, width, height);
+    const data = imgData.data;
+    for (let p = 0; p < data.length; p += 4) {
+      if (data[p + 3] === 0) {
+        numTransparentPixels++;
+        // Transparent pixel: set to magenta
+        data[p] = 255;   // R
+        data[p + 1] = 0; // G
+        data[p + 2] = 255; // B
+        data[p + 3] = 255; // Opaque
+      } else if (data[p] === 255 && data[p + 1] === 0 && data[p + 2] === 255) {
+        // If it's already magenta, make it slightly off-magenta to avoid confusion with transparency.
+        data[p] = 254;
+        numMagentaPixels++;
+      } else {
+        numSemiTransparentPixels++;
+        // Make every other pixel fully opaque.
+        data[p + 3] = 255;
+      }
+    }
+    ctx.putImageData(imgData, 0, 0);
+
+    console.log(`Fixed transparency: ${numTransparentPixels} transparent pixels, ${numMagentaPixels} magenta pixels, ${numSemiTransparentPixels} semi-transparent pixels.`);
+  }
+
+  private async generateSpinningGif() {
+    if (!this.imageUrl) return;
+    const img = new Image();
+    img.src = this.imageUrl;
+    await new Promise((resolve) => { img.onload = resolve; });
+
+    const width = img.naturalWidth;
+    const height = img.naturalHeight;
+    const frames = 24;
+    const gif = new GIF({
+      workers: 2,
+      quality: 10,
+      width,
+      height,
+      workerScript: '/gif.worker.js',
+      transparent: '0xFF00FF', // Use magenta for transparency
+    });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true, alpha: true })!;
+
+    for (let i = 0; i < frames; i++) {
+      ctx.clearRect(0, 0, width, height);
+
+      ctx.save();
+      ctx.translate(width / 2, height / 2);
+      ctx.rotate((2 * Math.PI * i) / frames);
+      ctx.drawImage(img, -width / 2, -height / 2, width, height);
+      ctx.restore();
+
+      this.fixTransparency(ctx, width, height);
+      gif.addFrame(ctx, { copy: true, delay: this.frameDelay, dispose: 2 });
+    }
+
+    console.log("rendering gif")
+    gif.on('finished', (blob: Blob) => {
+      console.log("finished")
+      if (this.gifObjectUrl) {
+        URL.revokeObjectURL(this.gifObjectUrl);
+      }
+      this.gifObjectUrl = URL.createObjectURL(blob);
+      this.gifUrl = this.gifObjectUrl;
+      this.cdr.detectChanges();
+    });
+    gif.render();
   }
 
   ngOnDestroy(): void {
@@ -30,6 +129,13 @@ export class GifmojifyComponent {
         URL.revokeObjectURL(this.imageUrl);
       } catch {
         // ignore revoke errors in environments that don't support it
+      }
+    }
+    if (this.gifObjectUrl) {
+      try {
+        URL.revokeObjectURL(this.gifObjectUrl);
+      } catch {
+        // ignore revoke errors
       }
     }
   }

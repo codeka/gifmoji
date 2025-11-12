@@ -1,6 +1,27 @@
 <div *ngIf="image">
   <h1>Uploaded Image</h1>
-  <img [src]="imageUrl" alt="Uploaded Image" style="max-width:256px; max-height:256px;" />
+  <div style="display: flex; gap: 32px; align-items: flex-start;">
+    <div>
+      <img [src]="imageUrl" alt="Uploaded Image" style="max-width:256px; max-height:256px; border: 1px solid #ccc;" />
+      <div style="text-align:center;">Original</div>
+
+      <p>Style</p>
+      <select [(ngModel)]="selectedStyle">
+        <option *ngFor="let style of styles" [value]="style">{{ style }}</option>
+      </select>
+
+      <p>Frame delay</p>
+      <input type="number" [(ngModel)]="frameDelay" /> ms
+
+      <div style="margin-top:16px;">
+        <button (click)="refresh()">Regenerate</button>
+      </div>
+    </div>
+    <div *ngIf="gifUrl">
+      <img [src]="gifUrl" alt="Output GIF" style="border: 1px solid #ccc;" />
+      <div style="text-align:center;">Output</div>
+    </div>
+  </div>
 </div>
 <div *ngIf="!image">
   <h1>No image uploaded</h1>
