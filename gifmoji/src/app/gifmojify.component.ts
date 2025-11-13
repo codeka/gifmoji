@@ -4,6 +4,17 @@ import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
+class Point2D {
+  x: number;
+  y: number;
+
+  constructor(x: number, y: number) {
+    this.x = x;
+    this.y = y;
+  }
+}
+
+
 @Component({
   selector: 'app-gifmojify',
   standalone: true,
@@ -14,15 +25,20 @@ import { FormsModule } from '@angular/forms';
 export class GifmojifyComponent {
   @Input() image: File | null = null;
 
-  styles = ["spinify"]
+  styles = ["spinify", "intensify"]
   selectedStyle = this.styles[0];
   frameDelay = 40;
   zoom = 1.0;
-  reverse = false;
   numFrames = 24;
   blurFrames = 0;
   blurAmount = 0.3;
   blurLength = 0.5;
+
+  // Spinify-specific settings.
+  reverse = false;
+
+  // Intensify-specific settings.
+  intensity = 5.0;
 
   // Cache the object URL so it doesn't change on every CD cycle.
   imageUrl: string = '';
@@ -36,13 +52,15 @@ export class GifmojifyComponent {
     this.image = navigation?.extras.state?.['image'] || null;
     if (this.image) {
       this.imageUrl = URL.createObjectURL(this.image);
-      this.generateSpinningGif();
+      this.generateSpinifyGif();
     }
   }
 
   refresh() {
     if (this.selectedStyle === 'spinify') {
-      this.generateSpinningGif();
+      this.generateSpinifyGif();
+    } else if (this.selectedStyle === 'intensify') {
+      this.generateIntensifyGif();
     }
   }
 
@@ -76,11 +94,9 @@ export class GifmojifyComponent {
       }
     }
     ctx.putImageData(imgData, 0, 0);
-
-    console.log(`Fixed transparency: ${numTransparentPixels} transparent pixels, ${numMagentaPixels} magenta pixels, ${numSemiTransparentPixels} semi-transparent pixels.`);
   }
 
-  private async generateSpinningGif() {
+  private async generateSpinifyGif() {
     if (!this.imageUrl) return;
     const img = new Image();
     img.src = this.imageUrl;
@@ -147,6 +163,83 @@ export class GifmojifyComponent {
     gif.render();
   }
 
+  private getIntensifyOffset(seed: number, frameNo: number): Point2D {
+    const x = (Math.sin(seed + frameNo * 1.37) + Math.sin(seed * 1.79 + frameNo * 0.73)) * this.intensity;
+    const y = (Math.sin(seed * 0.97 + frameNo * 1.49) + Math.sin(seed * 1.31 + frameNo * 0.91)) * this.intensity;
+    return new Point2D(x, y);
+  }
+
+  private async generateIntensifyGif() {
+    if (!this.imageUrl) return;
+    const img = new Image();
+    img.src = this.imageUrl;
+    await new Promise((resolve) => { img.onload = resolve; });
+
+    const origWidth = img.naturalWidth;
+    const origHeight = img.naturalHeight;
+    const width = origWidth * this.zoom;
+    const height = origHeight * this.zoom;
+    const gif = new GIF({
+      workers: 2,
+      quality: 10,
+      width,
+      height,
+      workerScript: '/gif.worker.js',
+      transparent: '0xFF00FF', // Use magenta for transparency
+    });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true, alpha: true })!;
+
+    const randomSeed = this.getRandomInt(1000000);
+
+    for (let i = 0; i < this.numFrames; i++) {
+      ctx.clearRect(0, 0, width, height);
+
+      const offset = this.getIntensifyOffset(randomSeed, i);
+
+      ctx.save();
+      ctx.translate(width / 2.0, height / 2.0);
+      ctx.drawImage(img, -origWidth / 2.0 + offset.x, -origHeight / 2.0 + offset.y, origWidth, origHeight);
+      ctx.restore();
+
+      for (let blurFrame = 0; blurFrame < this.blurFrames; blurFrame++) {
+        ctx.save();
+        const blurAlpha = this.blurAmount * (1.0 - (blurFrame / (this.blurFrames + 1)));
+        const lastIndex = i - 1 < 0 ? this.numFrames - 1 : i - 1;
+        const lastOffset = this.getIntensifyOffset(randomSeed, lastIndex);
+        const firstOffset = new Point2D(
+          lastOffset.x + (offset.x - lastOffset.x) * (1.0 - this.blurLength),
+          lastOffset.y + (offset.y - lastOffset.y) * (1.0 - this.blurLength));
+        const blurOffset = new Point2D(
+          firstOffset.x + (offset.x - firstOffset.x) * (blurFrame / (this.blurFrames + 1)),
+          firstOffset.y + (offset.y - firstOffset.y) * (blurFrame / (this.blurFrames + 1)));
+
+        ctx.translate(width / 2.0, height / 2.0);
+        ctx.globalAlpha = blurAlpha;
+        ctx.drawImage(img, -origWidth / 2.0 + blurOffset.x, -origHeight / 2.0 + blurOffset.y, origWidth, origHeight);
+        ctx.restore();
+      }
+
+      this.fixTransparency(ctx, width, height);
+      gif.addFrame(ctx, { copy: true, delay: this.frameDelay, dispose: 2 });
+    }
+
+    console.log("rendering gif")
+    gif.on('finished', (blob: Blob) => {
+      console.log("finished")
+      if (this.gifObjectUrl) {
+        URL.revokeObjectURL(this.gifObjectUrl);
+      }
+      this.gifObjectUrl = URL.createObjectURL(blob);
+      this.gifUrl = this.gifObjectUrl;
+      this.cdr.detectChanges();
+    });
+    gif.render();
+  }
+
   ngOnDestroy(): void {
     if (this.imageUrl) {
       try {
@@ -162,5 +255,10 @@ export class GifmojifyComponent {
         // ignore revoke errors
       }
     }
+  }
+
+  // Utility: return a random integer in [0, max)
+  private getRandomInt(max: number): number {
+    return Math.floor(Math.random() * Math.max(1, Math.floor(max)));
   }
 }

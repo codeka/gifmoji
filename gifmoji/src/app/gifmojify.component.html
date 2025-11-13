@@ -1,37 +1,58 @@
 <div *ngIf="image">
-  <h1>Uploaded Image</h1>
+  <h1>Gifmojify!</h1>
   <div style="display: flex; gap: 32px; align-items: flex-start;">
     <div>
       <img [src]="imageUrl" alt="Uploaded Image" style="max-width:256px; max-height:256px; border: 1px solid #ccc;" />
       <div style="text-align:center;">Original</div>
 
-      <p>Style</p>
-      <select [(ngModel)]="selectedStyle">
-        <option *ngFor="let style of styles" [value]="style">{{ style }}</option>
-      </select>
+      <div class="setting">
+        <h3>Style</h3>
+        <select [(ngModel)]="selectedStyle" (ngModelChange)="refresh()">
+          <option *ngFor="let style of styles" [value]="style">{{ style }}</option>
+        </select>
+      </div>
 
-      <p>
-        <input type="checkbox" [(ngModel)]="reverse" id="reverse-checkbox" />
-        <label for="reverse-checkbox">Reverse</label>
-      </p>
+      <div class="setting" *ngIf="selectedStyle == 'spinify'">
+        <p>
+          <input type="checkbox" [(ngModel)]="reverse" id="reverse-checkbox" />
+          <label for="reverse-checkbox">Reverse</label>
+        </p>
+      </div>
 
-      <p>Zoom</p>
-      <input type="number" [(ngModel)]="zoom" step="0.1" /> x
+      <div class="setting" *ngIf="selectedStyle == 'intensify'">
+        <h3>Intensity</h3>
+        <input type="number" [(ngModel)]="intensity" step="0.1" />
+      </div>
 
-      <p>Frame delay</p>
-      <input type="number" [(ngModel)]="frameDelay" /> ms
+      <div class="setting">
+        <h3>Zoom</h3>
+        <input type="number" [(ngModel)]="zoom" step="0.1" /> x
+      </div>
 
-      <p>Num Frames</p>
-      <input type="number" [(ngModel)]="numFrames" />
+      <div class="setting">
+        <h3>Frame delay</h3>
+        <input type="number" [(ngModel)]="frameDelay" /> ms
+      </div>
 
-      <p>Blur Frames</p>
-      <input type="number" [(ngModel)]="blurFrames" />
+      <div class="setting">
+        <h3>Num Frames</h3>
+        <input type="number" [(ngModel)]="numFrames" />
+      </div>
 
-      <p>Blur Amount</p>
-      <input type="number" [(ngModel)]="blurAmount" step="0.1" />
+      <div class="setting">
+        <h3>Blur Frames</h3>
+        <input type="number" [(ngModel)]="blurFrames" />
+      </div>
 
-      <p>Blur Length</p>
-      <input type="number" [(ngModel)]="blurLength" step="0.1" />
+      <div class="setting">
+        <h3>Blur Amount</h3>
+        <input type="number" [(ngModel)]="blurAmount" step="0.1" />
+      </div>
+
+      <div class="setting">
+        <h3>Blur Length</h3>
+        <input type="number" [(ngModel)]="blurLength" step="0.1" />
+      </div>
 
       <div style="margin-top:16px;">
         <button (click)="refresh()">Regenerate</button>
