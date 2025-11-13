@@ -21,7 +21,8 @@ export class GifmojifyComponent {
   reverse = false;
   numFrames = 24;
   blurFrames = 0;
-  blurAmount = 1.0;
+  blurAmount = 0.3;
+  blurLength = 0.5;
 
   // Cache the object URL so it doesn't change on every CD cycle.
   imageUrl: string = '';
@@ -119,7 +120,8 @@ export class GifmojifyComponent {
         const blurAlpha = this.blurAmount * (1.0 - (blurFrame / (this.blurFrames + 1)));
         const lastFullAngle = direction * (2 * Math.PI * (i - 1)) / this.numFrames;
         const currAngle = direction * (2 * Math.PI * i) / this.numFrames;
-        const blurAngle = lastFullAngle + (currAngle - lastFullAngle) * (blurFrame / (this.blurFrames + 1));
+        const firstBlurAngle = lastFullAngle + (currAngle - lastFullAngle) * (1.0 - this.blurLength);
+        const blurAngle = firstBlurAngle + (currAngle - firstBlurAngle) * (blurFrame / (this.blurFrames + 1));
 
         ctx.translate(width / 2.0, height / 2.0);
         ctx.rotate(blurAngle);
