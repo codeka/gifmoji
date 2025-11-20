@@ -25,7 +25,7 @@ class Point2D {
 export class GifmojifyComponent {
   @Input() image: File | null = null;
 
-  styles = ["spinify", "intensify"]
+  styles = ["spinify", "intensify", "borderize"]
   selectedStyle = this.styles[0];
   frameDelay = 40;
   zoom = 1.0;
@@ -39,6 +39,10 @@ export class GifmojifyComponent {
 
   // Intensify-specific settings.
   intensity = 5.0;
+
+  // Borderize-specific settings.
+  borderSize = 5;
+  borderColor = '#FFFFFF';
 
   // Cache the object URL so it doesn't change on every CD cycle.
   imageUrl: string = '';
@@ -61,6 +65,8 @@ export class GifmojifyComponent {
       this.generateSpinifyGif();
     } else if (this.selectedStyle === 'intensify') {
       this.generateIntensifyGif();
+    } else if (this.selectedStyle === 'borderize') {
+      this.generateBorderizePng();
     }
   }
 
@@ -161,6 +167,79 @@ export class GifmojifyComponent {
       this.cdr.detectChanges();
     });
     gif.render();
+  }
+
+  private async generateBorderizePng() {
+    if (!this.imageUrl) return;
+    const img = new Image();
+    img.src = this.imageUrl;
+    await new Promise((resolve) => { img.onload = resolve; });
+
+    const zoomX = img.naturalWidth / (img.naturalWidth - 2 * this.borderSize);
+    const zoomY = img.naturalHeight / (img.naturalHeight - 2 * this.borderSize);
+
+    const origWidth = img.naturalWidth;
+    const origHeight = img.naturalHeight;
+    const width = origWidth * zoomX;
+    const height = origHeight * zoomY;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true, alpha: true })!;
+
+    // Draw the image scaled by zoom
+    ctx.clearRect(0, 0, width, height);
+    ctx.drawImage(img, 0, 0, width, height);
+
+    // Convert every non-transparent pixel to the provided border color, keep alpha unchanged.
+    function parseHexColor(hex: string) {
+      if (!hex) return { r: 255, g: 255, b: 255 };
+      let s = hex.trim();
+      if (s[0] === '#') s = s.slice(1);
+      if (s.length === 3) {
+        // expand shorthand like 'abc' -> 'aabbcc'
+        s = s.split('').map((c) => c + c).join('');
+      }
+      if (s.length !== 6) return { r: 255, g: 255, b: 255 };
+      const r = parseInt(s.slice(0, 2), 16);
+      const g = parseInt(s.slice(2, 4), 16);
+      const b = parseInt(s.slice(4, 6), 16);
+      if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return { r: 255, g: 255, b: 255 };
+      return { r, g, b };
+    }
+
+    const { r: borderR, g: borderG, b: borderB } = parseHexColor(this.borderColor);
+    const imgData = ctx.getImageData(0, 0, width, height);
+    const data = imgData.data;
+    for (let p = 0; p < data.length; p += 4) {
+      const alpha = data[p + 3];
+      if (alpha !== 0) {
+        data[p] = borderR;
+        data[p + 1] = borderG;
+        data[p + 2] = borderB;
+        // preserve alpha as-is
+      }
+    }
+    ctx.putImageData(imgData, 0, 0);
+
+    // Draw the original image again on top (preserves original pixels over the white conversion).
+    ctx.drawImage(img, (width / 2) - (origWidth / 2), (height / 2) - (origHeight / 2), origWidth, origHeight);
+
+    // Export as PNG and set gifUrl
+    const blob: Blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((b) => {
+        if (b) resolve(b);
+        else reject(new Error('Failed to create PNG blob'));
+      }, 'image/png');
+    });
+
+    if (this.gifObjectUrl) {
+      try { URL.revokeObjectURL(this.gifObjectUrl); } catch {}
+    }
+    this.gifObjectUrl = URL.createObjectURL(blob);
+    this.gifUrl = this.gifObjectUrl;
+    this.cdr.detectChanges();
   }
 
   private getIntensifyOffset(seed: number, frameNo: number): Point2D {
