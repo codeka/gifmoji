@@ -180,17 +180,18 @@ export class GifmojifyComponent {
 
     const origWidth = img.naturalWidth;
     const origHeight = img.naturalHeight;
-    const width = origWidth * zoomX;
-    const height = origHeight * zoomY;
+    const width = Math.round(origWidth * zoomX);
+    const height = Math.round(origHeight * zoomY);
 
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext('2d', { willReadFrequently: true, alpha: true })!;
 
-    // Draw the image scaled by zoom
+    // Draw the image first.
     ctx.clearRect(0, 0, width, height);
-    ctx.drawImage(img, 0, 0, width, height);
+    ctx.drawImage(
+      img, (width / 2) - (origWidth / 2), (height / 2) - (origHeight / 2), origWidth, origHeight);
 
     // Convert every non-transparent pixel to the provided border color, keep alpha unchanged.
     function parseHexColor(hex: string) {
@@ -221,10 +222,24 @@ export class GifmojifyComponent {
         // preserve alpha as-is
       }
     }
-    ctx.putImageData(imgData, 0, 0);
+
+    // Find all the edge points -- that is, opaque pixels that have at least one transparent
+    // neighbor.
+    const edgePoints = this.findEdgePoints(data, width, height);
+
+    // Draw border pixels
+    ctx.save();
+    ctx.fillStyle = this.borderColor;
+    for (const point of edgePoints) {
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, this.borderSize, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+    ctx.restore();
 
     // Draw the original image again on top (preserves original pixels over the white conversion).
-    ctx.drawImage(img, (width / 2) - (origWidth / 2), (height / 2) - (origHeight / 2), origWidth, origHeight);
+    ctx.drawImage(
+      img, (width / 2) - (origWidth / 2), (height / 2) - (origHeight / 2), origWidth, origHeight);
 
     // Export as PNG and set gifUrl
     const blob: Blob = await new Promise<Blob>((resolve, reject) => {
@@ -240,6 +255,44 @@ export class GifmojifyComponent {
     this.gifObjectUrl = URL.createObjectURL(blob);
     this.gifUrl = this.gifObjectUrl;
     this.cdr.detectChanges();
+  }
+
+  /**
+   * Finds "edge" points. That is, given an image that includes some transparent pixels, finds the
+   * 2d coordinates of pixels that are opaque but have at least one neighboring pixel that is
+   * transparent.
+   */
+  private findEdgePoints(data: Uint8ClampedArray, width: number, height: number): Point2D[] {
+    const edgePoints: Point2D[] = [];
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const index = (y * width + x) * 4;
+        const alpha = data[index + 3];
+        if (alpha < 10) {
+          // Skip transparent pixels.
+          continue;
+        }
+
+        // Check neighbors for transparency.
+        // TODO: also check diagonals?
+        const neighbors = [
+          { dx: -1, dy: 0 }, { dx: 1, dy: 0 }, { dx: 0, dy: -1 }, { dx: 0, dy: 1 },
+        ];
+        for (const neighbor of neighbors) {
+          const nx = x + neighbor.dx;
+          const ny = y + neighbor.dy;
+          if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+            const nIndex = (ny * width + nx) * 4;
+            const nAlpha = data[nIndex + 3];
+            if (nAlpha < 10) {
+              edgePoints.push(new Point2D(x, y));
+              break;
+            }
+          }
+        }
+      }
+    }
+    return edgePoints;
   }
 
   private getIntensifyOffset(seed: number, frameNo: number): Point2D {
