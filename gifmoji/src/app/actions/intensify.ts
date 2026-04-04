@@ -1,16 +1,6 @@
 import GIF from "gif.js";
 import { ActionResult, BaseAction } from "./base-action";
-
-
-export interface IntensifyOptions {
-  zoom: number;
-  intensity: number;
-  numFrames: number;
-  frameDelay: number;
-  blurFrames: number;
-  blurAmount: number;
-  blurLength: number;
-}
+import { ActionSetting } from "./action-setting";
 
 class Point2D {
   x: number;
@@ -23,20 +13,15 @@ class Point2D {
 }
 
 export class Intensify extends BaseAction {
-  private options: IntensifyOptions;
-
-  constructor(options: Partial<IntensifyOptions>) {
-    super();
-    this.options = Object.assign({
-      zoom: 1.0,
-      intensity: 5.0,
-      numFrames: 24,
-      frameDelay: 40,
-      blurFrames: 0,
-      blurAmount: 0.3,
-      blurLength: 0.5
-    }, options);
-  }
+  override settings = new Map<string, ActionSetting>([
+    ["zoom", new ActionSetting('Zoom', 'number', 1.0)],
+    ["intensity", new ActionSetting('Intensity', 'number', 5.0)],
+    ["numFrames", new ActionSetting('Number of Frames', 'number', 24)],
+    ["frameDelay", new ActionSetting('Frame Delay', 'number', 40)],
+    ["blurFrames", new ActionSetting('Blur Frames', 'number', 0)],
+    ["blurAmount", new ActionSetting('Blur Amount', 'number', 0.3)],
+    ["blurLength", new ActionSetting('Blur Length', 'number', 0.5)],
+  ]);
 
   override execute(imageUrl: string): Promise<ActionResult> {
     return new Promise(async (resolve) => {
@@ -46,8 +31,8 @@ export class Intensify extends BaseAction {
 
       const origWidth = img.naturalWidth;
       const origHeight = img.naturalHeight;
-      const width = origWidth * this.options.zoom;
-      const height = origHeight * this.options.zoom;
+      const width = origWidth * this.settings.get("zoom")!.value;
+      const height = origHeight * this.settings.get("zoom")!.value;
       const gif = new GIF({
         workers: 2,
         quality: 10,
@@ -64,36 +49,53 @@ export class Intensify extends BaseAction {
 
       const randomSeed = this.getRandomInt(1000000);
 
-      for (let i = 0; i < this.options.numFrames; i++) {
+      for (let i = 0; i < this.settings.get("numFrames")!.value; i++) {
         ctx.clearRect(0, 0, width, height);
 
         const offset = this.getIntensifyOffset(randomSeed, i);
 
         ctx.save();
         ctx.translate(width / 2.0, height / 2.0);
-        ctx.drawImage(img, -origWidth / 2.0 + offset.x, -origHeight / 2.0 + offset.y, origWidth, origHeight);
+        ctx.drawImage(
+            img,
+            -origWidth / 2.0 + offset.x,
+            -origHeight / 2.0 + offset.y,
+            origWidth,
+            origHeight);
         ctx.restore();
 
-        for (let blurFrame = 0; blurFrame < this.options.blurFrames; blurFrame++) {
+        for (let blurFrame = 0; blurFrame < this.settings.get("blurFrames")!.value; blurFrame++) {
           ctx.save();
-          const blurAlpha = this.options.blurAmount * (1.0 - (blurFrame / (this.options.blurFrames + 1)));
-          const lastIndex = i - 1 < 0 ? this.options.numFrames - 1 : i - 1;
+          const blurAmount = this.settings.get("blurAmount")!.value;
+          const blurFrames = this.settings.get("blurFrames")!.value;
+          const blurLength = this.settings.get("blurLength")!.value;
+          const blurAlpha = blurAmount * (1.0 - (blurFrame / (blurFrames + 1)));
+          const lastIndex = i - 1 < 0 ? this.settings.get("numFrames")!.value - 1 : i - 1;
           const lastOffset = this.getIntensifyOffset(randomSeed, lastIndex);
           const firstOffset = new Point2D(
-            lastOffset.x + (offset.x - lastOffset.x) * (1.0 - this.options.blurLength),
-            lastOffset.y + (offset.y - lastOffset.y) * (1.0 - this.options.blurLength));
+            lastOffset.x + (offset.x - lastOffset.x) * (1.0 - blurLength),
+            lastOffset.y + (offset.y - lastOffset.y) * (1.0 - blurLength));
           const blurOffset = new Point2D(
-            firstOffset.x + (offset.x - firstOffset.x) * (blurFrame / (this.options.blurFrames + 1)),
-            firstOffset.y + (offset.y - firstOffset.y) * (blurFrame / (this.options.blurFrames + 1)));
+            firstOffset.x + (offset.x - firstOffset.x) * (blurFrame / (blurFrames + 1)),
+            firstOffset.y + (offset.y - firstOffset.y) * (blurFrame / (blurFrames + 1)));
 
           ctx.translate(width / 2.0, height / 2.0);
           ctx.globalAlpha = blurAlpha;
-          ctx.drawImage(img, -origWidth / 2.0 + blurOffset.x, -origHeight / 2.0 + blurOffset.y, origWidth, origHeight);
+          ctx.drawImage(
+              img,
+              -origWidth / 2.0 + blurOffset.x,
+              -origHeight / 2.0 + blurOffset.y,
+              origWidth,
+              origHeight);
           ctx.restore();
         }
 
         this.fixTransparency(ctx, width, height);
-        gif.addFrame(ctx, { copy: true, delay: this.options.frameDelay, dispose: 2 });
+        gif.addFrame(ctx, {
+            copy: true,
+            delay: this.settings.get("frameDelay")!.value,
+            dispose: 2
+        });
       }
 
       console.log("rendering gif")
@@ -106,8 +108,13 @@ export class Intensify extends BaseAction {
 
   
   private getIntensifyOffset(seed: number, frameNo: number): Point2D {
-    const x = (Math.sin(seed + frameNo * 1.37) + Math.sin(seed * 1.79 + frameNo * 0.73)) * this.options.intensity;
-    const y = (Math.sin(seed * 0.97 + frameNo * 1.49) + Math.sin(seed * 1.31 + frameNo * 0.91)) * this.options.intensity;
+    const intensity = this.settings.get("intensity")!.value;
+    const x = (
+        Math.sin(seed + frameNo * 1.37) +
+        Math.sin(seed * 1.79 + frameNo * 0.73)) * intensity;
+    const y = (
+        Math.sin(seed * 0.97 + frameNo * 1.49) +
+        Math.sin(seed * 1.31 + frameNo * 0.91)) * intensity;
     return new Point2D(x, y);
   }
 

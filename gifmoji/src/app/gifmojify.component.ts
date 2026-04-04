@@ -1,10 +1,9 @@
 import { Component, Input, ChangeDetectorRef } from '@angular/core';
-import GIF from 'gif.js';
-import { Router } from '@angular/router';
+import { Router, ɵEmptyOutletComponent } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
-import { ActionResult, BaseAction } from './actions/base-action';
+import { BaseAction } from './actions/base-action';
 import { Spinify } from './actions/spinify';
 import { Intensify } from './actions/intensify';
 import { Borderize } from './actions/borderize';
@@ -19,24 +18,11 @@ import { Borderize } from './actions/borderize';
 export class GifmojifyComponent {
   @Input() image: File | null = null;
 
+  action: BaseAction | null = null;
+
   styles = ["spinify", "intensify", "borderize"]
-  selectedStyle = this.styles[0];
-  frameDelay = 40;
-  zoom = 1.0;
-  numFrames = 24;
-  blurFrames = 0;
-  blurAmount = 0.3;
-  blurLength = 0.5;
-
-  // Spinify-specific settings.
-  reverse = false;
-
-  // Intensify-specific settings.
-  intensity = 5.0;
-
-  // Borderize-specific settings.
-  borderSize = 5;
-  borderColor = '#FFFFFF';
+  selectedStyle = this.styles[1];
+  currentStyle = "";
 
   // Cache the object URL so it doesn't change on every CD cycle.
   imageUrl: string = '';
@@ -55,37 +41,19 @@ export class GifmojifyComponent {
   }
 
   refresh() {
-    var action: BaseAction|null = null;
-    if (this.selectedStyle === 'spinify') {
-      action = new Spinify({
-        zoom: this.zoom,
-        reverse: this.reverse,
-        numFrames: this.numFrames,
-        frameDelay: this.frameDelay,
-        blurFrames: this.blurFrames,
-        blurAmount: this.blurAmount,
-        blurLength: this.blurLength
-      });
-    } else if (this.selectedStyle === 'intensify') {
-      action = new Intensify({
-        zoom: this.zoom,
-        intensity: this.intensity,
-        numFrames: this.numFrames,
-        frameDelay: this.frameDelay,
-        blurFrames: this.blurFrames,
-        blurAmount: this.blurAmount,
-        blurLength: this.blurLength
-      });
-    } else if (this.selectedStyle === 'borderize') {
-      action = new Borderize({
-        zoom: this.zoom,
-        borderSize: this.borderSize,
-        borderColor: this.borderColor,
-      });
+    if (this.selectedStyle !== this.currentStyle) {
+      if (this.selectedStyle === 'spinify') {
+        this.action = new Spinify();
+      } else if (this.selectedStyle === 'intensify') {
+        this.action = new Intensify();
+      } else if (this.selectedStyle === 'borderize') {
+        this.action = new Borderize();
+      }
+      this.currentStyle = this.selectedStyle;
     }
 
-    if (action) {
-      action.execute(this.imageUrl).then((result) => {
+    if (this.action) {
+      this.action.execute(this.imageUrl).then((result) => {
         if (this.gifObjectUrl) {
           URL.revokeObjectURL(this.gifObjectUrl);
         }

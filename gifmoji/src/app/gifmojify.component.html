@@ -12,57 +12,22 @@
         </select>
       </div>
 
-      <div class="setting" *ngIf="['spinify'].includes(selectedStyle)">
-        <p>
-          <input type="checkbox" [(ngModel)]="reverse" id="reverse-checkbox" />
-          <label for="reverse-checkbox">Reverse</label>
-        </p>
-      </div>
-
-      <div class="setting" *ngIf="['intensify'].includes(selectedStyle)">
-        <h3>Intensity</h3>
-        <input type="number" [(ngModel)]="intensity" step="0.1" />
-      </div>
-
-      <div class="setting" *ngIf="['borderize'].includes(selectedStyle)">
-        <h3>Border Size</h3>
-        <input type="number" [(ngModel)]="borderSize" /> px
-      </div>
-
-      <div class="setting" *ngIf="['borderize'].includes(selectedStyle)">
-        <h3>Border Color</h3>
-        <input type="text" [(ngModel)]="borderColor" />
-      </div>
-      
-      <div class="setting" *ngIf="['spinify', 'intensify'].includes(selectedStyle)">
-        <h3>Zoom</h3>
-        <input type="number" [(ngModel)]="zoom" step="0.1" /> x
-      </div>
-
-      <div class="setting" *ngIf="['spinify', 'intensify'].includes(selectedStyle)">
-        <h3>Frame delay</h3>
-        <input type="number" [(ngModel)]="frameDelay" /> ms
-      </div>
-
-      <div class="setting" *ngIf="['spinify', 'intensify'].includes(selectedStyle)">
-        <h3>Num Frames</h3>
-        <input type="number" [(ngModel)]="numFrames" />
-      </div>
-
-      <div class="setting" *ngIf="['spinify', 'intensify'].includes(selectedStyle)">
-        <h3>Blur Frames</h3>
-        <input type="number" [(ngModel)]="blurFrames" />
-      </div>
-
-      <div class="setting" *ngIf="['spinify', 'intensify'].includes(selectedStyle)">
-        <h3>Blur Amount</h3>
-        <input type="number" [(ngModel)]="blurAmount" step="0.1" />
-      </div>
-
-      <div class="setting" *ngIf="['spinify', 'intensify'].includes(selectedStyle)">
-        <h3>Blur Length</h3>
-        <input type="number" [(ngModel)]="blurLength" step="0.1" />
-      </div>
+      <ng-container *ngFor="let item of action?.settings | keyvalue">
+        <div class="setting">
+          <p *ngIf="item.value.type === 'checkbox'">
+            <input type="checkbox" [(ngModel)]="item.value.value" id="{{item.key}}" />
+            <label for="{{item.key}}">{{item.value.name}}</label>
+          </p>
+          <ng-container *ngIf="item.value.type === 'number' || item.value.type === 'text'">
+            <h3>{{item.value.name}}</h3>
+            <input
+                type="{{item.value.type}}"
+                [(ngModel)]="item.value.value"
+                id="{{item.key}}"
+                step="{{item.value.steps}}" />
+          </ng-container>
+        </div>
+      </ng-container>
 
       <div style="margin-top:16px;">
         <button (click)="refresh()">Regenerate</button>

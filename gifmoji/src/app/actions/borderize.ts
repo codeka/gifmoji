@@ -1,3 +1,4 @@
+import { ActionSetting } from "./action-setting";
 import { ActionResult, BaseAction } from "./base-action";
 
 export interface BorderizeOptions {
@@ -17,17 +18,11 @@ class Point2D {
 }
 
 export class Borderize extends BaseAction {
-  private options: BorderizeOptions;
-
-  constructor(options: Partial<BorderizeOptions>) {
-    super(); 
-
-    this.options = Object.assign({
-      zoom: 1.0,
-      borderSize: 5,
-      borderColor: '#000000',
-    }, options);
-  }
+  override settings = new Map<string, ActionSetting>([
+    ["zoom", new ActionSetting('Zoom', 'number', 1.0)],
+    ["borderSize", new ActionSetting('Border Size', 'number', 5.0)],
+    ["borderColor", new ActionSetting('Border Color', 'text', '#FFFFFF')],
+  ]);
 
   override execute(imageUrl: string): Promise<ActionResult> {
     return new Promise(async (resolve) => {
@@ -35,8 +30,11 @@ export class Borderize extends BaseAction {
       img.src = imageUrl;
       await new Promise((resolve) => { img.onload = resolve; });
 
-      const zoomX = img.naturalWidth / (img.naturalWidth - 2 * this.options.borderSize);
-      const zoomY = img.naturalHeight / (img.naturalHeight - 2 * this.options.borderSize);
+      const borderSize = this.settings.get("borderSize")!.value;
+      const borderColor = this.settings.get("borderColor")!.value;
+
+      const zoomX = img.naturalWidth / (img.naturalWidth - 2 * borderSize);
+      const zoomY = img.naturalHeight / (img.naturalHeight - 2 * borderSize);
 
       const origWidth = img.naturalWidth;
       const origHeight = img.naturalHeight;
@@ -70,7 +68,7 @@ export class Borderize extends BaseAction {
         return { r, g, b };
       }
 
-      const { r: borderR, g: borderG, b: borderB } = parseHexColor(this.options.borderColor);
+      const { r: borderR, g: borderG, b: borderB } = parseHexColor(borderColor);
       const imgData = ctx.getImageData(0, 0, width, height);
       const data = imgData.data;
       for (let p = 0; p < data.length; p += 4) {
@@ -89,10 +87,10 @@ export class Borderize extends BaseAction {
 
       // Draw border pixels
       ctx.save();
-      ctx.fillStyle = this.options.borderColor;
+      ctx.fillStyle = borderColor;
       for (const point of edgePoints) {
         ctx.beginPath();
-        ctx.arc(point.x, point.y, this.options.borderSize, 0, 2 * Math.PI);
+        ctx.arc(point.x, point.y, borderSize, 0, 2 * Math.PI);
         ctx.fill();
       }
       ctx.restore();

@@ -1,10 +1,14 @@
 
+import { ActionSetting } from "./action-setting";
+
 export class ActionResult {
   constructor(public url: string) {}
 }
 
 export abstract class BaseAction {
   abstract execute(imageUrl: string): Promise<ActionResult>;
+
+  settings: Map<string, ActionSetting> = new Map();
 
   // Given an existing image with potentially partially-transparent pixels, convert it to
   // a format that GIF will interpret correctly by replacing transparent pixels with magenta.
