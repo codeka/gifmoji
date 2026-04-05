@@ -23,7 +23,7 @@ export class Petify extends BaseAction {
     ["zoom", new ActionSetting('Zoom', 'number', 2)],
     ["mirror", new ActionSetting('Mirror', 'checkbox', false)],
     ["frameDelay", new ActionSetting('Frame Delay', 'number', 40)],
-    ["squishAmount", new ActionSetting('Squish Amount', 'number', 1.0)],
+    ["squishAmount", new ActionSetting('Squish Amount', 'number', 0.4)],
   ]);
 
   override execute(imageUrl: string): Promise<ActionResult> {
