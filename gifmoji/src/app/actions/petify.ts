@@ -4,16 +4,6 @@ import { ActionSetting } from "./action-setting";
 
 import { parseGIF, decompressFrames } from 'gifuct-js'
 
-export interface SpinifyOptions {
-  zoom: number;
-  reverse: boolean;
-  numFrames: number;
-  frameDelay: number;
-  blurFrames: number;
-  blurAmount: number;
-  blurLength: number;
-}
-
 const baseImageSizeFactor = 0.8;
 const baseImageShrinkAmount = 0.5;
 const baseImageFlareAmount = 1.1;
