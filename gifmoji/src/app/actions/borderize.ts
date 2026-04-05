@@ -1,12 +1,6 @@
 import { ActionSetting } from "./action-setting";
 import { ActionResult, BaseAction } from "./base-action";
 
-export interface BorderizeOptions {
-  zoom: number;
-  borderSize: number;
-  borderColor: string;
-}
-
 class Point2D {
   x: number;
   y: number;

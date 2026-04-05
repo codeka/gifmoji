@@ -142,5 +142,5 @@ export class Petify extends BaseAction {
     image.src = canvas.toDataURL();
     await new Promise((resolve) => { image.onload = resolve; });
     return image;
-}
+  }
 }

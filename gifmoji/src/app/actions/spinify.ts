@@ -2,16 +2,6 @@ import GIF from "gif.js";
 import { ActionResult, BaseAction } from "./base-action";
 import { ActionSetting } from "./action-setting";
 
-export interface SpinifyOptions {
-  zoom: number;
-  reverse: boolean;
-  numFrames: number;
-  frameDelay: number;
-  blurFrames: number;
-  blurAmount: number;
-  blurLength: number;
-}
-
 export class Spinify extends BaseAction {
   override settings = new Map<string, ActionSetting>([
     ["zoom", new ActionSetting('Zoom', 'number', 1.0)],
