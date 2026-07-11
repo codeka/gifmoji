@@ -14,7 +14,6 @@ class Point2D {
 
 export class Intensify extends BaseAction {
   override settings = new Map<string, ActionSetting>([
-    ["zoom", new ActionSetting('Zoom', 'number', 1.0)],
     ["intensity", new ActionSetting('Intensity', 'number', 5.0)],
     ["numFrames", new ActionSetting('Number of Frames', 'number', 24)],
     ["frameDelay", new ActionSetting('Frame Delay', 'number', 40)],
@@ -29,10 +28,28 @@ export class Intensify extends BaseAction {
       img.src = imageUrl;
       await new Promise((resolve) => { img.onload = resolve; });
 
+      const randomSeed = this.getRandomInt(1000000);
+
+      // Figure out the offsets for each frame in advance so that we can use them to calculate the
+      // maximum size of the output image.
+      const numFrames = this.settings.get("numFrames")!.value;
+      var offsets = new Array<Point2D>(numFrames);
+      var maxOffsetX = 0;
+      var maxOffsetY = 0;
+      for (let i = 0; i < numFrames; i++) {
+        offsets[i] = this.getIntensifyOffset(randomSeed, i);
+        if (Math.abs(offsets[i].x) > maxOffsetX) {
+          maxOffsetX = Math.abs(offsets[i].x);
+        }
+        if (Math.abs(offsets[i].y) > maxOffsetY) {
+          maxOffsetY = Math.abs(offsets[i].y);
+        }
+      }
+
       const origWidth = img.naturalWidth;
       const origHeight = img.naturalHeight;
-      const width = origWidth * this.settings.get("zoom")!.value;
-      const height = origHeight * this.settings.get("zoom")!.value;
+      const width = origWidth + (maxOffsetX * 2);
+      const height = origHeight + (maxOffsetY * 2);
       const gif = new GIF({
         workers: 2,
         quality: 10,
@@ -47,12 +64,10 @@ export class Intensify extends BaseAction {
       canvas.height = height;
       const ctx = canvas.getContext('2d', { willReadFrequently: true, alpha: true })!;
 
-      const randomSeed = this.getRandomInt(1000000);
-
       for (let i = 0; i < this.settings.get("numFrames")!.value; i++) {
         ctx.clearRect(0, 0, width, height);
 
-        const offset = this.getIntensifyOffset(randomSeed, i);
+        const offset = offsets[i];
 
         ctx.save();
         ctx.translate(width / 2.0, height / 2.0);
@@ -71,7 +86,7 @@ export class Intensify extends BaseAction {
           const blurLength = this.settings.get("blurLength")!.value;
           const blurAlpha = blurAmount * (1.0 - (blurFrame / (blurFrames + 1)));
           const lastIndex = i - 1 < 0 ? this.settings.get("numFrames")!.value - 1 : i - 1;
-          const lastOffset = this.getIntensifyOffset(randomSeed, lastIndex);
+          const lastOffset = offsets[lastIndex];
           const firstOffset = new Point2D(
             lastOffset.x + (offset.x - lastOffset.x) * (1.0 - blurLength),
             lastOffset.y + (offset.y - lastOffset.y) * (1.0 - blurLength));
@@ -105,7 +120,6 @@ export class Intensify extends BaseAction {
       gif.render();
     });
   }
-
   
   private getIntensifyOffset(seed: number, frameNo: number): Point2D {
     const intensity = this.settings.get("intensity")!.value;
