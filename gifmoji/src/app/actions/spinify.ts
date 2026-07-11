@@ -4,7 +4,7 @@ import { ActionSetting } from "./action-setting";
 
 export class Spinify extends BaseAction {
   override settings = new Map<string, ActionSetting>([
-    ["zoom", new ActionSetting('Zoom', 'number', 1.0)],
+    ["zoom", new ActionSetting('Zoom', 'number', 1.2)],
     ["reverse", new ActionSetting('Reverse', 'checkbox', false)],
     ["intensity", new ActionSetting('Intensity', 'number', 5.0)],
     ["numFrames", new ActionSetting('Number of Frames', 'number', 24)],
