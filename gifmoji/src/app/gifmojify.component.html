@@ -26,6 +26,7 @@
                 id="{{item.key}}"
                 step="{{item.value.steps}}" />
           </ng-container>
+          <p class="desc" *ngIf="item.value.description != ''">{{item.value.description}}</p>
         </div>
       </ng-container>
 

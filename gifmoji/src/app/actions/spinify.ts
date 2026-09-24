@@ -7,7 +7,7 @@ export class Spinify extends BaseAction {
     ["zoom", new ActionSetting('Zoom', 'number', 1.2)],
     ["reverse", new ActionSetting('Reverse', 'checkbox', false)],
     ["intensity", new ActionSetting('Intensity', 'number', 5.0)],
-    ["numFrames", new ActionSetting('Number of Frames', 'number', 24)],
+    ["numFrames", new ActionSetting('Number of Frames', 'number', 21)],
     ["frameDelay", new ActionSetting('Frame Delay', 'number', 40)],
     ["blurFrames", new ActionSetting('Blur Frames', 'number', 0)],
     ["blurAmount", new ActionSetting('Blur Amount', 'number', 0.3)],
@@ -72,7 +72,6 @@ export class Spinify extends BaseAction {
         gif.addFrame(ctx, { copy: true, delay: this.settings.get("frameDelay")!.value, dispose: 2 });
       }
 
-      console.log("rendering gif")
       gif.on('finished', (blob: Blob) => {
         resolve(new ActionResult(URL.createObjectURL(blob)));
       });

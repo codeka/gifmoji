@@ -11,6 +11,7 @@ import { Petify } from './actions/petify';
 import { Jamify } from './actions/jamify';
 import { OldManYellify } from './actions/old-man-yellify';
 import { Lurkify } from './actions/lurkify';
+import { Twirlify } from './actions/twirlify';
 
 @Component({
   selector: 'app-gifmojify',
@@ -25,7 +26,7 @@ export class GifmojifyComponent {
   action: BaseAction | null = null;
 
   styles = ["spinify", "intensify", "borderize", "petify", "jamify", "old-man-yellify",
-            "lurkify"];  
+            "lurkify", 'twirlify'];  
   selectedStyle = this.styles[1];
   currentStyle = "";
 
@@ -61,6 +62,8 @@ export class GifmojifyComponent {
         this.action = new OldManYellify();
       } else if (this.selectedStyle === 'lurkify') {
         this.action = new Lurkify();
+      } else if (this.selectedStyle === 'twirlify') {
+        this.action = new Twirlify();
       }
 
       this.currentStyle = this.selectedStyle;

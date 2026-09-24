@@ -6,7 +6,13 @@ import { parseGIF, decompressFrames, ParsedFrame } from 'gifuct-js'
 
 export class OldManYellify extends BaseAction {
   override settings = new Map<string, ActionSetting>([
-    ["animated", new ActionSetting('Animated', 'checkbox', false)],
+    ["animated", new ActionSetting(
+      'Animated',
+      'checkbox',
+      false,
+      'Check this if the input image is an animated GIF. ' +
+      'If unchecked, only the first frame will be used. ' +
+      'Ideal if the input has an integer multiple of 42 frames (e.g. 7, 14, 21, 42, etc)')],
     ["zoom", new ActionSetting('Zoom', 'number', 2)],
     ["frameDelay", new ActionSetting('Frame Delay', 'number', 40)],
     ["frameSkip", new ActionSetting('Frame Skip', 'number', 2)],
